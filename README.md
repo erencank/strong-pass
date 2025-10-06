@@ -1,7 +1,10 @@
-# Tauri + Vue + TypeScript
+# Strong pass
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+Just working on a password manager for fun. Probably not strong.
 
-## Recommended IDE Setup
+## Requirements
 
-- [VS Code](https://code.visualstudio.com/) + [Vue - Official](https://marketplace.visualstudio.com/items?itemName=Vue.volar) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+1. Install deno using `brew install deno` (macOS) or `curl -fsSL https://deno.land/install.sh | sh`.
+2. Install rust using `curl --proto '=https' --tlsv1.2 https://sh.rustup.rs -sSf | sh` (macOs or linux)
+3. Run `deno install`.
+4. Run `deno task tauri dev` to start the dev server
