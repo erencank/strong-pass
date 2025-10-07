@@ -4,10 +4,10 @@
     "version": "0.1.0",
     "identifier": "com.tauri.dev",
     "build": {
-        "frontendDist": "../dist",
+        "frontendDist": "../.output/public",
         "devUrl": "http://localhost:3000",
-        "beforeDevCommand": "deno task dev",
-        "beforeBuildCommand": "deno task generate"
+        "beforeDevCommand": "npm run dev",
+        "beforeBuildCommand": "npm run generate"
     },
     "app": {
         "windows": [
@@ -21,7 +21,8 @@
         ],
         "security": {
             "csp": null
-        }
+        },
+        "withGlobalTauri": true
     },
     "bundle": {
         "active": true,
