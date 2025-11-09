@@ -1,7 +1,9 @@
+<script setup lang="ts">
+import { Toaster } from "@/components/ui/sonner";
+import "vue-sonner/style.css"; // vue-sonner v2 requires this import
+</script>
+
 <template>
-  <div
-    class="dark min-h-screen bg-background font-sans text-foreground antialiased"
-  >
-    <NuxtPage />
-  </div>
+  <Toaster />
+  <NuxtPage />
 </template>
