@@ -2,7 +2,6 @@ import {
   type IPublicKeyRequest,
   type IPublicKeyResponse,
 } from "~/types/api-contracts";
-import { useApi } from "./useApi";
 
 /**
  * Composable providing crypto-related utility functions.

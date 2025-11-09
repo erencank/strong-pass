@@ -1,5 +1,4 @@
 import { defineStore } from "pinia";
-import { useApi } from "~/compostables/useApi";
 import type {
   IChallengeRequest,
   IChallengeResponse,

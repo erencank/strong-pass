@@ -1,6 +1,4 @@
 import { defineStore } from "pinia";
-import { useApi } from "~/compostables/useApi";
-import { usePublicApi } from "~/compostables/usePublicApi";
 import {
   type ILinkCreateRequest,
   type ILinkCreateResponse,

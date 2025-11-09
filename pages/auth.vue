@@ -18,7 +18,7 @@ function handleRegistrationSuccess() {
       <div
         class="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]"
       >
-        <div class="flex flex-col space-y-2 text-center w-1/3">
+        <div class="flex flex-col space-y-2 text-center items-center">
           <Tabs default-value="login" v-model:model-value="currentTab">
             <TabsList class="grid w-full grid-cols-2">
               <TabsTrigger value="login"> Login </TabsTrigger>
