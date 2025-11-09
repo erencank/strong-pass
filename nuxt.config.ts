@@ -9,9 +9,16 @@ export default defineNuxtConfig({
     host: "0",
   },
 
+  runtimeConfig: {
+    public: {
+      // This URL will be available on the client and server.
+      apiBaseUrl: "http://test:8000",
+    },
+  },
+
   ssr: false,
   css: ["~/assets/css/tailwind.css"],
 
   ignore: ["**/src-tauri/**"],
-  modules: ["@nuxtjs/tailwindcss"],
+  modules: ["@nuxtjs/tailwindcss", "@pinia/nuxt"],
 });

@@ -646,7 +646,9 @@ const _inlineRuntimeConfig = {
       }
     }
   },
-  "public": {}
+  "public": {
+    "apiBaseUrl": "http://test:8000"
+  }
 };
 const envOptions = {
   prefix: "NITRO_",

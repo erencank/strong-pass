@@ -1,4 +1,5 @@
 /// <reference types="@nuxt/devtools" />
+/// <reference types="@pinia/nuxt" />
 /// <reference types="@nuxt/telemetry" />
 /// <reference types="@nuxtjs/tailwindcss" />
 /// <reference path="types/modules.d.ts" />

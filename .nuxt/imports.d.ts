@@ -30,5 +30,9 @@ export { requestIdleCallback, cancelIdleCallback } from '#app/compat/idle-callba
 export { setInterval } from '#app/compat/interval';
 export { definePageMeta } from '../node_modules/.deno/nuxt@4.1.3/node_modules/nuxt/dist/pages/runtime/composables';
 export { defineLazyHydrationComponent } from '#app/composables/lazy-hydration';
+export { useAuthStore } from '../stores/auth';
+export { useSharingStore } from '../stores/sharing';
+export { useVaultStore } from '../stores/vault';
 export { autocompleteUtil as tw } from '../node_modules/.deno/@nuxtjs+tailwindcss@7.0.0-beta.0/node_modules/@nuxtjs/tailwindcss/dist/runtime/utils';
+export { defineStore, acceptHMRUpdate, usePinia, storeToRefs } from '../node_modules/.deno/@pinia+nuxt@0.11.3/node_modules/@pinia/nuxt/dist/runtime/composables';
 export { useNuxtDevTools } from '../node_modules/.deno/@nuxt+devtools@2.6.5/node_modules/@nuxt/devtools/dist/runtime/use-nuxt-devtools';
