@@ -2,49 +2,49 @@
   "compilerOptions": {
     "paths": {
       "nitropack/types": [
-        "../node_modules/.deno/nitropack@2.12.6/node_modules/nitropack/types"
+        "../node_modules/nitropack/types"
       ],
       "nitropack/runtime": [
-        "../node_modules/.deno/nitropack@2.12.6/node_modules/nitropack/runtime"
+        "../node_modules/nitropack/runtime"
       ],
       "nitropack": [
-        "../node_modules/.deno/nitropack@2.12.6/node_modules/nitropack"
+        "../node_modules/nitropack"
       ],
       "defu": [
-        "../node_modules/.deno/defu@6.1.4/node_modules/defu"
+        "../node_modules/defu"
       ],
       "h3": [
-        "../node_modules/.deno/h3@1.15.4/node_modules/h3"
+        "../node_modules/h3"
       ],
       "consola": [
-        "../node_modules/.deno/consola@3.4.2/node_modules/consola"
+        "../node_modules/consola"
       ],
       "ofetch": [
-        "../node_modules/.deno/ofetch@1.4.1/node_modules/ofetch"
+        "../node_modules/ofetch"
       ],
       "@unhead/vue": [
-        "../node_modules/.deno/@unhead+vue@2.0.17/node_modules/@unhead/vue"
+        "../node_modules/@unhead/vue"
       ],
       "@nuxt/devtools": [
-        "../node_modules/.deno/@nuxt+devtools@2.6.5/node_modules/@nuxt/devtools"
+        "../node_modules/@nuxt/devtools"
       ],
       "@vue/runtime-core": [
-        "../node_modules/.deno/@vue+runtime-core@3.5.22/node_modules/@vue/runtime-core"
+        "../node_modules/@vue/runtime-core"
       ],
       "@vue/compiler-sfc": [
-        "../node_modules/.deno/@vue+compiler-sfc@3.5.22/node_modules/@vue/compiler-sfc"
+        "../node_modules/@vue/compiler-sfc"
       ],
       "unplugin-vue-router/client": [
-        "../node_modules/.deno/unplugin-vue-router@0.15.0/node_modules/unplugin-vue-router/client"
+        "../node_modules/unplugin-vue-router/client"
       ],
       "@nuxt/schema": [
-        "../node_modules/.deno/@nuxt+schema@4.1.3/node_modules/@nuxt/schema"
+        "../node_modules/@nuxt/schema"
       ],
       "nuxt": [
-        "../node_modules/.deno/nuxt@4.1.3/node_modules/nuxt"
+        "../node_modules/nuxt"
       ],
       "vite/client": [
-        "../node_modules/.deno/vite@7.1.9/node_modules/vite/client"
+        "../node_modules/vite/client"
       ],
       "~": [
         ".."
@@ -77,19 +77,19 @@
         "../shared/*"
       ],
       "#app": [
-        "../node_modules/.deno/nuxt@4.1.3/node_modules/nuxt/dist/app"
+        "../node_modules/nuxt/dist/app"
       ],
       "#app/*": [
-        "../node_modules/.deno/nuxt@4.1.3/node_modules/nuxt/dist/app/*"
+        "../node_modules/nuxt/dist/app/*"
       ],
       "vue-demi": [
-        "../node_modules/.deno/nuxt@4.1.3/node_modules/nuxt/dist/app/compat/vue-demi"
+        "../node_modules/nuxt/dist/app/compat/vue-demi"
       ],
       "#vue-router": [
-        "../node_modules/.deno/vue-router@4.5.1/node_modules/vue-router"
+        "../node_modules/vue-router"
       ],
       "#unhead/composables": [
-        "../node_modules/.deno/nuxt@4.1.3/node_modules/nuxt/dist/head/runtime/composables"
+        "../node_modules/nuxt/dist/head/runtime/composables"
       ],
       "#imports": [
         "./imports"
@@ -166,18 +166,19 @@
     "../node_modules/.deno/@nuxtjs+tailwindcss@7.0.0-beta.0/node_modules/dist/runtime",
     "../node_modules/.deno/@pinia+nuxt@0.11.3/node_modules/runtime",
     "../node_modules/.deno/@pinia+nuxt@0.11.3/node_modules/dist/runtime",
-    "../node_modules/.deno/@nuxt+devtools@2.6.5/node_modules/runtime",
-    "../node_modules/.deno/@nuxt+devtools@2.6.5/node_modules/dist/runtime",
-    "../node_modules/.deno/@nuxt+telemetry@2.6.6/node_modules/runtime",
-    "../node_modules/.deno/@nuxt+telemetry@2.6.6/node_modules/dist/runtime"
+    "../node_modules/.deno/shadcn-nuxt@2.3.2/node_modules/runtime",
+    "../node_modules/.deno/shadcn-nuxt@2.3.2/node_modules/dist/runtime",
+    "../node_modules/runtime",
+    "../node_modules/dist/runtime"
   ],
   "exclude": [
     "../node_modules",
-    "../node_modules/.deno/nuxt@4.1.3/node_modules/nuxt/node_modules",
+    "../node_modules/nuxt/node_modules",
     "../node_modules/.deno/@nuxtjs+tailwindcss@7.0.0-beta.0/node_modules/@nuxtjs/tailwindcss/node_modules",
     "../node_modules/.deno/@pinia+nuxt@0.11.3/node_modules/@pinia/nuxt/node_modules",
-    "../node_modules/.deno/@nuxt+devtools@2.6.5/node_modules/@nuxt/devtools/node_modules",
-    "../node_modules/.deno/@nuxt+telemetry@2.6.6/node_modules/@nuxt/telemetry/node_modules",
+    "../node_modules/.deno/shadcn-nuxt@2.3.2/node_modules/shadcn-nuxt/node_modules",
+    "../node_modules/@nuxt/devtools/node_modules",
+    "../node_modules/@nuxt/telemetry/node_modules",
     "../dist",
     "../.data",
     "../modules/*/runtime/server/**/*",
@@ -187,9 +188,9 @@
     "../node_modules/.deno/@nuxtjs+tailwindcss@7.0.0-beta.0/node_modules/dist/runtime/server",
     "../node_modules/.deno/@pinia+nuxt@0.11.3/node_modules/runtime/server",
     "../node_modules/.deno/@pinia+nuxt@0.11.3/node_modules/dist/runtime/server",
-    "../node_modules/.deno/@nuxt+devtools@2.6.5/node_modules/runtime/server",
-    "../node_modules/.deno/@nuxt+devtools@2.6.5/node_modules/dist/runtime/server",
-    "../node_modules/.deno/@nuxt+telemetry@2.6.6/node_modules/runtime/server",
-    "../node_modules/.deno/@nuxt+telemetry@2.6.6/node_modules/dist/runtime/server"
+    "../node_modules/.deno/shadcn-nuxt@2.3.2/node_modules/runtime/server",
+    "../node_modules/.deno/shadcn-nuxt@2.3.2/node_modules/dist/runtime/server",
+    "../node_modules/runtime/server",
+    "../node_modules/dist/runtime/server"
   ]
 }
