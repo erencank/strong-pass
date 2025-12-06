@@ -16,7 +16,10 @@ type StrictFetchOptions<T> = UseFetchOptions<
   T extends void ? "get" : any // Method
 >;
 
-export function useApi<T = void>(url: string, options: FetchOptions<T> = {}) {
+export function useApi<T = void>(
+  url: string,
+  options: FetchOptions<T> & { skipAuthError?: boolean } = {}
+) {
   const authStore = useAuthStore();
   const config = useRuntimeConfig();
 
@@ -32,8 +35,9 @@ export function useApi<T = void>(url: string, options: FetchOptions<T> = {}) {
     },
 
     onResponseError({ response }: { response: any }) {
+      if (options.skipAuthError) return; // Allow caller to handle 401 manually
+
       if (response.status === 401 || response.status === 403) {
-        console.error("API: Unauthorized or Forbidden. Logging out.");
         authStore.logout();
       }
     },

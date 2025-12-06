@@ -1,166 +1,66 @@
-// A base64-encoded string.
-type B64String = string;
-// A UUID string.
-type UUID = string;
+/**
+ * API Contract Definitions
+ * Mirrors the Pydantic schemas from the FastAPI backend.
+ */
 
-// --- Enums (from src/enums.py) ---
+// --- Shared Types ---
 
-export type VaultRole = "VIEWER" | "EDITOR" | "ADMIN";
-export type ShareStatus =
-  | "PENDING"
-  | "ACCEPTED"
-  | "DECLINED"
-  | "AWAITING_REGISTRATION";
-export type ItemType = "LOGIN" | "NOTE" | "CARD" | "IDENTITY";
-
-// --- Auth (from schemas/auth.py) ---
-
-export interface IRegisterRequest {
+export interface User {
+  id: string;
   email: string;
-  master_password_hash: string;
-  master_password_salt: string;
-  device_name: string;
-  device_public_key: B64String;
-  device_encrypted_private_key_blob: B64String;
-  device_encrypted_wrapping_key: B64String;
-  encrypted_vault_key: B64String;
+  is_active: boolean;
+  is_superuser: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
-export interface IRegisterResponse {
-  user_id: UUID;
-  device_id: UUID;
-  status: "success" | "failure";
-}
+// --- Auth / SRP Types ---
 
-export interface IChallengeRequest {
+export interface SRPInitRequest {
   email: string;
-  device_id: UUID;
 }
 
-export interface IChallengeResponse {
-  master_password_salt: string;
-  challenge_token: string;
+export interface SRPInitResponse {
+  salt: string; // Hex encoded
+  B: string; // Hex encoded server public value
 }
 
-export interface ILoginRequest {
-  challenge_token: string;
-  signature: B64String; // Signature of the nonce
+export interface SRPLoginRequest {
+  email: string;
+  A: string; // Hex encoded client public value
+  M1: string; // Hex encoded client evidence
 }
 
-export interface ILoginResponse {
+export interface SRPLoginResponse {
+  M2: string; // Hex encoded server evidence
   access_token: string;
-  token_type: "bearer";
+  token_type: string;
+  user: User;
 }
 
-export interface IUserMe {
+export interface RegisterRequest {
+  email: string;
+  salt: string; // Hex encoded
+  verifier: string; // Hex encoded
+
+  // Encrypted master key (encrypted with the derived key from password)
+  enc_private_key: string;
+  public_key: string; // User's public key for sharing/verification
+}
+
+export interface RegisterResponse {
+  id: string;
   email: string;
 }
 
-// --- Items (from schemas/items.py) ---
+// --- Token Types ---
 
-export interface IVaultItem {
-  id: UUID;
-  vault_id: UUID;
-  created_at: string; // ISO DateTime
-  updated_at: string; // ISO DateTime
-  name: string;
-  item_type: ItemType;
-  data_blob: B64String; // Encrypted item data
-  // Add other fields from VaultItemRead if needed
+export interface Token {
+  access_token: string;
+  token_type: string;
 }
 
-export interface IItemCreateRequest {
-  name: string;
-  item_type: ItemType;
-  data_blob: B64String;
-  // Add other fields from VaultItemCreate
-}
-
-export interface IItemMoveRequest {
-  destination_vault_id: UUID;
-}
-
-export interface IItemShareCreateRequest {
-  recipient_email: string;
-  role: VaultRole;
-  encrypted_item_key: B64String;
-}
-
-export interface IItemShare {
-  id: UUID;
-  recipient_email: string;
-  role: VaultRole;
-  status: ShareStatus;
-}
-
-// --- Vault (from schemas/vault.py) ---
-
-export interface IVaultShare {
-  id: UUID;
-  recipient_email: string;
-  role: VaultRole;
-  status: ShareStatus;
-}
-
-export interface ISimpleVault {
-  id: UUID;
-  owner_id: UUID;
-  name: string;
-  description: string | null;
-  vault_key: B64String; // User's encrypted vault key
-}
-
-export interface IDetailedVault extends ISimpleVault {
-  vault_items: IVaultItem[];
-  shares: IVaultShare[];
-}
-
-export interface IVaultCreateRequest {
-  name: string;
-  description?: string | null;
-  vault_key: B64String;
-}
-
-export interface IVaultUpdateRequest {
-  name?: string | null;
-  description?: string | null;
-}
-
-export interface IVaultShareCreateRequest {
-  recipient_email: string;
-  role: VaultRole;
-  vault_key?: B64String | null; // Encrypted vault key for the recipient
-}
-
-export interface IShareResponseRequest {
-  status: "ACCEPTED" | "DECLINED";
-}
-
-// --- Links (from schemas/links.py) ---
-
-export interface ILinkCreateRequest {
-  vault_item_id: UUID;
-  encrypted_blob: B64String;
-  expires_in_hours?: number;
-  max_views?: number | null;
-}
-
-export interface ILinkCreateResponse {
-  link_id: UUID;
-  expiration_timestamp: number;
-}
-
-export interface ILinkReadResponse {
-  contents: B64String;
-  expiration_timestamp: number;
-}
-
-// --- Crypto (from schemas/crypto.py) ---
-
-export interface IPublicKeyRequest {
-  email: string;
-}
-
-export interface IPublicKeyResponse {
-  public_key: B64String;
+export interface TokenPayload {
+  sub: string; // User ID
+  exp: number;
 }

@@ -1,230 +1,169 @@
 import { defineStore } from "pinia";
+import { ref } from "vue";
+import { useRouter } from "vue-router";
+import { useApi } from "~/composables/useApi";
+import { useCryptoService } from "~/composables/useCryptoService";
+// Assuming these types exist in your contracts, or I define the shape here for usage
 import type {
-  IChallengeRequest,
-  IChallengeResponse,
-  ILoginRequest,
-  ILoginResponse,
-  IRegisterRequest,
-  IRegisterResponse,
+  SRPInitResponse,
+  SRPLoginResponse,
+  User,
 } from "~/types/api-contracts";
 
-// This device ID would be generated once and stored in localStorage
-// For this example, we'll use a placeholder.
-const MOCK_DEVICE_ID = "00000000-0000-0000-0000-000000000001";
-
 export const useAuthStore = defineStore("auth", () => {
-  const token = useCookie("auth-token", { maxAge: 60 * 60 * 24 * 7 }); // 1 week
-  const userEmail = ref<string | null>(null);
+  const token = ref<string | null>(null);
+  const user = ref<User | null>(null);
+  const isAuthenticated = computed(() => !!token.value);
 
-  // State for the 2-step login flow
-  const loginStep = ref<"email" | "password">("email");
-  const loginEmail = ref<string>("");
-  const challengeToken = ref<string>("");
-  const masterPasswordSalt = ref<string>("");
+  const router = useRouter();
+  const cryptoService = useCryptoService();
 
-  const isLoading = ref(false);
-  const error = ref<string | null>(null);
+  // --- Registration Flow ---
 
-  /**
-   * Resets the login flow to the first step
-   */
-  function resetLoginFlow() {
-    loginStep.value = "email";
-    loginEmail.value = "";
-    challengeToken.value = "";
-    masterPasswordSalt.value = "";
-    error.value = null;
+  async function register(email: string, password: string): Promise<void> {
+    // 1. Generate a random salt
+    const salt = cryptoService.generateSalt();
+
+    // 2. Derive the private key (x) and then the verifier (v)
+    // Adjust method signature based on your actual useCryptoService implementation
+    const privateKey = await cryptoService.derivePrivateKey(
+      salt,
+      email,
+      password
+    );
+    const verifier = cryptoService.computeVerifier(privateKey);
+
+    // 3. Send Identity + Salt + Verifier to backend
+    const { error } = await useApi("/auth/register", {
+      method: "POST",
+      body: {
+        email,
+        salt,
+        verifier,
+      },
+    });
+
+    if (error.value) {
+      throw new Error(error.value.data?.detail || "Registration failed");
+    }
+
+    // Optional: Auto-login after register or redirect to login
+    router.push("/auth?mode=login");
   }
 
-  /**
-   * STEP 1 of Login: Get salt and challenge from the server.
-   */
-  async function loginStep1_getChallenge(email: string) {
-    isLoading.value = true;
-    error.value = null;
+  // --- SRP Login Flow ---
+
+  async function login(email: string, password: string): Promise<void> {
     try {
-      const { data, error: apiError } = await useApi<IChallengeResponse>(
-        "/auth/token/challenge",
-        {
+      // Step 1: SRP Init (Handshake)
+      // Send identity (email) to get the Salt (s) and Server Public Key (B)
+      const { data: initData, error: initError } =
+        await useApi<SRPInitResponse>("/auth/srp/init", {
+          method: "POST",
+          body: { email },
+          // If 404/User not found, we generally don't want to logout global state yet
+          skipAuthError: true,
+        });
+
+      if (initError.value) {
+        throw new Error(
+          initError.value.data?.detail || "User not found or connection failed"
+        );
+      }
+
+      const { salt, B: B } = initData.value!;
+
+      // Step 2: Client-side SRP Calculations
+      // a = ephemeral private key (random)
+      // A = ephemeral public key (g^a % N)
+      const a = cryptoService.generateEphemeralSecret();
+      const A = cryptoService.computeClientPublic(a);
+
+      // x = private key derived from salt + email + password
+      const x = await cryptoService.derivePrivateKey(salt, email, password);
+
+      // S = Session Premaster Secret
+      // K = Session Key (Hash of S)
+      // M1 = Client Proof
+      const S = await cryptoService.computeSessionSecret(salt, B, a, x);
+      const K = await cryptoService.computeSessionKey(S);
+      const M1 = await cryptoService.computeClientProof(email, salt, A, B, K);
+
+      // Step 3: SRP Verify
+      // Send A and M1 to server. Server verifies M1.
+      // Server returns M2 (Server Proof) and the JWT Token.
+      const { data: verifyData, error: verifyError } =
+        await useApi<SRPLoginResponse>("/auth/srp/verify", {
           method: "POST",
           body: {
             email,
-            device_id: MOCK_DEVICE_ID, // TODO: This must be a real, stored device ID
-          } as IChallengeRequest,
-        }
-      );
+            client_public: A,
+            client_proof: M1,
+          },
+          skipAuthError: true, // Handle "Invalid Password" manually
+        });
 
-      if (apiError.value) throw apiError.value;
-
-      if (data.value) {
-        // Save state for step 2
-        masterPasswordSalt.value = data.value.master_password_salt;
-        challengeToken.value = data.value.challenge_token;
-        loginEmail.value = email;
-        loginStep.value = "password"; // Move to the next step
+      if (verifyError.value) {
+        throw new Error("Incorrect password or verification failed");
       }
-    } catch (e: any) {
-      error.value =
-        e.data?.detail || "An error occurred fetching the login challenge.";
-      resetLoginFlow();
-    } finally {
-      isLoading.value = false;
+
+      const { M2: M2, access_token, token_type } = verifyData.value!;
+
+      // Step 4: Verify Server Proof (M2)
+      // Ensure the server actually knows the password (verifier)
+      const isValidServer = cryptoService.verifyServerProof(A, M1, K, M2);
+
+      if (!isValidServer) {
+        throw new Error(
+          "Server authentication failed! Possible Man-in-the-Middle attack."
+        );
+      }
+
+      // Step 5: Success
+      token.value = access_token;
+
+      // Ideally fetch the user profile immediately
+      await fetchUser();
+
+      router.push("/");
+    } catch (err: any) {
+      console.error("SRP Login Error:", err);
+      // Clean up sensitive data from memory if possible
+      throw err;
     }
   }
 
-  /**
-   * STEP 2 of Login: Solve the challenge and get the session token.
-   */
-  async function loginStep2_solveChallenge(masterPassword: string) {
-    if (!challengeToken.value || !masterPasswordSalt.value) {
-      error.value = "Login flow error. Please start over.";
-      resetLoginFlow();
+  // --- Helper Actions ---
+
+  async function fetchUser() {
+    if (!token.value) return;
+
+    const { data, error } = await useApi<User>("/users/me");
+    if (error.value) {
+      logout();
       return;
     }
-
-    isLoading.value = true;
-    error.value = null;
-
-    try {
-      // --- START: Client-Side Crypto (Required) ---
-      // TODO: 1. Derive key from masterPassword and masterPasswordSalt.value
-      // const derivedKey = await deriveKey(masterPassword, masterPasswordSalt.value);
-
-      // TODO: 2. Load the encrypted device private key from local storage.
-      // const encryptedPrivateKeyBlob = localStorage.getItem('devicePrivateKey');
-
-      // TODO: 3. Decrypt the private key using the derivedKey.
-      // const privateKey = await decrypt(encryptedPrivateKeyBlob, derivedKey);
-
-      // TODO: 4. Sign the challengeToken.value using the decrypted privateKey.
-      // const signature = await sign(challengeToken.value, privateKey);
-
-      // Placeholder - this WILL fail until crypto is implemented
-      const signature = "B64_SIGNATURE_PLACEHOLDER";
-      // --- END: Client-Side Crypto (Required) ---
-
-      const { data, error: apiError } = await useApi<ILoginResponse>(
-        "/auth/token",
-        {
-          method: "POST",
-          body: {
-            challenge_token: challengeToken.value,
-            signature: signature, // The B64-encoded signature
-          } as ILoginRequest,
-        }
-      );
-
-      if (apiError.value) throw apiError.value;
-
-      if (data.value) {
-        token.value = data.value.access_token;
-        userEmail.value = loginEmail.value;
-        resetLoginFlow();
-        await navigateTo("/"); // Redirect to dashboard
-      }
-    } catch (e: any) {
-      error.value = e.data?.detail || "Invalid password or signature.";
-      // Don't reset flow, let them try password again
-    } finally {
-      isLoading.value = false;
-    }
+    user.value = data.value;
   }
 
-  /**
-   * Register a new user and their first device.
-   */
-  async function register(
-    email: string,
-    masterPassword: string,
-    deviceName: string
-  ) {
-    isLoading.value = true;
-    error.value = null;
-
-    try {
-      // --- START: Client-Side Crypto (Required) ---
-      // TODO: 1. Generate master_password_salt
-      // const salt = generateSalt();
-
-      // TODO: 2. Derive master_password_hash
-      // const hash = await deriveKey(masterPassword, salt);
-
-      // TODO: 3. Generate new device keypair (public/private)
-      // const { publicKey, privateKey } = await generateKeyPair();
-
-      // TODO: 4. Generate new main vault encryption key
-      // const vaultKey = await generateSymmetricKey();
-
-      // TODO: 5. Encrypt the device private key with the derived key (hash)
-      // const encryptedPrivateKey = await encrypt(privateKey, hash);
-
-      // TODO: 6. Encrypt the vault key with the derived key (hash)
-      // const encryptedVaultKey = await encrypt(vaultKey, hash);
-
-      // TODO: 7. Encrypt the wrapping key (this is complex, depends on your exact E2EE design)
-      // For now, let's assume it's also encrypted with the derived key.
-      // const encryptedWrappingKey = await encrypt(something, hash);
-
-      // Placeholder - this WILL fail until crypto is implemented
-      const registerPayload: IRegisterRequest = {
-        email,
-        master_password_hash: "B64_HASH_PLACEHOLDER",
-        master_password_salt: "SALT_PLACEHOLDER",
-        device_name: deviceName,
-        device_public_key: "B64_PUBLIC_KEY_PLACEHOLDER",
-        device_encrypted_private_key_blob: "B64_PRIVATE_KEY_BLOB_PLACEHOLDER",
-        device_encrypted_wrapping_key: "B64_WRAPPING_KEY_PLACEHOLDER",
-        encrypted_vault_key: "B64_VAULT_KEY_PLACEHOLDER",
-      };
-      // --- END: Client-Side Crypto (Required) ---
-
-      const { data, error: apiError } = await useApi<IRegisterResponse>(
-        "/auth/register",
-        {
-          method: "POST",
-          body: registerPayload,
-        }
-      );
-
-      if (apiError.value) throw apiError.value;
-
-      if (data.value?.status === "success") {
-        // TODO: Store device ID, encrypted private key, etc. in localStorage
-        // localStorage.setItem('deviceId', data.value.device_id);
-        // localStorage.setItem('devicePrivateKey', encryptedPrivateKey);
-
-        // After registering, log the user in.
-        await loginStep1_getChallenge(email);
-        await loginStep2_solveChallenge(masterPassword);
-      }
-    } catch (e: any) {
-      error.value = e.data?.detail || "Registration failed.";
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  /**
-   * Log the user out by clearing the token and redirecting.
-   */
-  async function logout() {
+  function logout() {
     token.value = null;
-    userEmail.value = null;
-    resetLoginFlow();
-    await navigateTo("/auth");
+    user.value = null;
+
+    // Clear any localStorage/Cookies if you are using them for persistence
+    // const cookie = useCookie('token');
+    // cookie.value = null;
+
+    router.push("/auth");
   }
 
   return {
     token,
-    userEmail,
-    loginStep,
-    loginEmail,
-    isLoading,
-    error,
-    loginStep1_getChallenge,
-    loginStep2_solveChallenge,
+    user,
+    isAuthenticated,
     register,
+    login,
     logout,
-    resetLoginFlow,
+    fetchUser,
   };
 });
