@@ -26,7 +26,7 @@ const form = useForm({
 const onSubmit = form.handleSubmit((values) => {
   console.log("Form submitted!", values);
   isLoading.value = true;
-  store.register(values.email, values.password, "test-device-name");
+  store.register(values.email, values.password);
   toast({
     title: "Succesfully registered",
     variant: "success",

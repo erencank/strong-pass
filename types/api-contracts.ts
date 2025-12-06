@@ -4,7 +4,6 @@
  */
 
 // --- Shared Types ---
-
 export interface User {
   id: string;
   email: string;
@@ -16,51 +15,62 @@ export interface User {
 
 // --- Auth / SRP Types ---
 
-export interface SRPInitRequest {
+// /auth/init
+export interface UserInitRequest {
   email: string;
 }
 
-export interface SRPInitResponse {
-  salt: string; // Hex encoded
-  B: string; // Hex encoded server public value
+export interface UserInitResponse {
+  srp_salt: string; // String (likely hex or b64, used for key derivation)
+  dek_salt: string; // String
+  rec_salt: string; // String
+  srp_group_id: string; // "2048"
 }
 
-export interface SRPLoginRequest {
+// /auth/srp/challenge
+export interface SRPChallengeRequest {
   email: string;
-  A: string; // Hex encoded client public value
-  M1: string; // Hex encoded client evidence
+  client_ephemeral_public: string; // "A" (Base64)
 }
 
-export interface SRPLoginResponse {
-  M2: string; // Hex encoded server evidence
+export interface SRPChallengeResponse {
+  server_ephemeral_public: string; // "B" (Base64)
+  srp_salt: string; // "s" (Base64)
+  srp_session_id: string; // UUID
+}
+
+// /auth/srp/token
+export interface SRPTokenRequest {
+  srp_session_id: string; // UUID
+  client_ephemeral_public: string; // "A" (Base64)
+  client_proof: string; // "M1" (Base64)
+}
+
+export interface TokenResponse {
   access_token: string;
   token_type: string;
-  user: User;
+  server_proof: string; // "M2" (Base64)
 }
 
-export interface RegisterRequest {
+// --- Registration ---
+
+export interface UserCreate {
   email: string;
-  salt: string; // Hex encoded
-  verifier: string; // Hex encoded
+  srp_salt: string; // Base64
+  srp_verifier: string; // Base64
+  srp_group_id: string; // "2048"
 
-  // Encrypted master key (encrypted with the derived key from password)
-  enc_private_key: string;
-  public_key: string; // User's public key for sharing/verification
+  public_key: string; // Base64
+  dek_salt: string; // Base64
+  encrypted_private_key: string; // Base64
+
+  rec_salt: string; // Base64
+  encrypted_private_key_recovery: string; // Base64
+
+  encrypted_vault_key: string; // Base64
 }
 
-export interface RegisterResponse {
-  id: string;
-  email: string;
-}
-
-// --- Token Types ---
-
-export interface Token {
-  access_token: string;
-  token_type: string;
-}
-
-export interface TokenPayload {
-  sub: string; // User ID
-  exp: number;
+export interface UserCreateResponse {
+  user_id: string;
+  status: "success" | "failure";
 }
