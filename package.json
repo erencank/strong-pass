@@ -2,6 +2,9 @@
     "name": "strong-pass",
     "type": "module",
     "private": true,
+    "engines": {
+        "bun": ">=1.1.42"
+    },
     "scripts": {
         "build": "nuxt build",
         "dev": "nuxt dev",

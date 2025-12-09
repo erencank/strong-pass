@@ -1,1 +1,0 @@
-import{_ as o,x as t,z as n,y as r}from"#entry";const s={};function l(a,e){return r(),t("div",null,[...e[0]||(e[0]=[n("h1",{class:"text-4xl font-bold"},"Hello World",-1)])])}const d=o(s,[["render",l]]);export{d as default};
