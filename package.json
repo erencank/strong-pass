@@ -3,7 +3,7 @@
     "type": "module",
     "private": true,
     "engines": {
-        "bun": ">=1.1.42"
+        "node": ">=18.0.0"
     },
     "scripts": {
         "build": "nuxt build",

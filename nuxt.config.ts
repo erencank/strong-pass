@@ -1,5 +1,6 @@
 import { defineNuxtConfig } from "nuxt/config";
 
+const backendUrl = process.env.BACKEND_URL || "http://localhost:8000";
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: "2025-07-15",
@@ -12,7 +13,15 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       // This URL will be available on the client and server.
-      apiBaseUrl: "http://test:8000",
+      apiBaseUrl: "/api",
+    },
+  },
+
+  routeRules: {
+    // 3. Configure the Proxy
+    // Any request to '/api/**' is forwarded to the 'backendUrl'
+    "/api/**": {
+      proxy: `${backendUrl}/**`,
     },
   },
 
