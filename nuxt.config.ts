@@ -1,5 +1,4 @@
 import { defineNuxtConfig } from "nuxt/config";
-import { nodePolyfills } from "vite-plugin-node-polyfills";
 
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
@@ -33,17 +32,5 @@ export default defineNuxtConfig({
      * @default "./components/ui"
      */
     componentDir: "./components/ui",
-  },
-  vite: {
-    plugins: [
-      nodePolyfills({
-        // Only polyfill what we need for fast-srp-hap
-        include: ["buffer", "process", "crypto", "util", "stream"],
-        globals: {
-          Buffer: true,
-          process: true,
-        },
-      }),
-    ],
   },
 });
