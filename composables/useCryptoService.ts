@@ -1,22 +1,21 @@
-/**
- * Crypto Service
- * Implements SRP-6a (RFC 5054), Argon2id (via hash-wasm), AES-GCM, and RSA-OAEP/PSS.
- * * DEPENDENCY: `npm install hash-wasm`
- */
-
 import { argon2id } from "hash-wasm";
+import {
+  generateSalt,
+  derivePrivateKey,
+  deriveVerifier,
+  generateEphemeral,
+  type Ephemeral,
+  deriveSession,
+  verifySession,
+} from "secure-remote-password/client";
+import { Buffer } from "buffer";
+
+export interface SrpClientSession {
+  ephemeralSecret: string; // Hex 'a'
+  ephemeralPublic: string; // Hex 'A'
+}
 
 export const useCryptoService = () => {
-  // --- Constants (RFC 5054 2048-bit Group) ---
-  const N_hex =
-    "AC6BDB41324A9A9BF166DE5E1389582FAF72B6651987EE07FC3192943DB56050A37329CBB4A099ED8193E0757767A13DD52312AB4B03310DCD7F48A9DA04FD50E8083969EDB767B0CF6095179A163AB3661A05FBD5FAAAE82918A9962F0B93B855F97993EC975EEAA80D740ADBF4FF7453866200F77C769102100490B971876038234E04FBB9C07F4872AD5D735977461564463BA5990F565C9529F494511D733267793E1165A1961447050212F13D48B47C1339695627E43926D0219602A77446C93609871788C5C81646487570481F190D5505299285090DD93A24B79240234F3C729013C23C5E479D1936359D03750F8990F452286C32360215F3389A9003";
-  const g_hex = "02";
-  const N = BigInt("0x" + N_hex);
-  const g = BigInt("0x" + g_hex);
-  const k = BigInt(
-    "0x5b9e8ef059c6b32ea59fc1d322d37f04aa30bae5aa9003b8321e21ddb04e300"
-  );
-
   // --- Utility Functions ---
 
   function randomBytes(length: number): Uint8Array {
@@ -25,9 +24,20 @@ export const useCryptoService = () => {
     return array;
   }
 
-  function toBase64(buffer: Uint8Array | ArrayBuffer): string {
+  function toBase64(
+    buffer: Uint8Array | ArrayBuffer | Buffer | number[]
+  ): string {
+    if (Buffer.isBuffer(buffer)) return buffer.toString("base64");
+
+    // Handle standard arrays or Uint8Arrays
+    let bytes: Uint8Array;
+    if (Array.isArray(buffer)) {
+      bytes = new Uint8Array(buffer);
+    } else {
+      bytes = new Uint8Array(buffer);
+    }
+
     let binary = "";
-    const bytes = new Uint8Array(buffer);
     for (let i = 0; i < bytes.byteLength; i++) {
       binary += String.fromCharCode(bytes[i]);
     }
@@ -44,35 +54,14 @@ export const useCryptoService = () => {
     return bytes;
   }
 
-  function hexToBigInt(hex: string): bigint {
-    return BigInt("0x" + hex);
-  }
-
-  function bigIntToHex(n: bigint): string {
-    let hex = n.toString(16);
-    if (hex.length % 2 !== 0) hex = "0" + hex;
-    return hex;
-  }
-
-  function bigIntToBuf(n: bigint): Uint8Array {
-    const hex = bigIntToHex(n);
-    const len = hex.length / 2;
-    const u8 = new Uint8Array(len);
-    for (let i = 0; i < len; i++) {
-      u8[i] = parseInt(hex.substring(i * 2, i * 2 + 2), 16);
-    }
-    return u8;
-  }
-
-  // --- New Helpers for Hex <-> Base64 interop ---
-
-  function hexToBase64(hex: string): string {
-    // 1. Hex -> BigInt -> Buf -> Base64 (Safe for SRP numbers)
-    // Or direct hex->buf parsing
+  function hexToBase64(hexstring: string): string {
     const bytes = new Uint8Array(
-      hex.match(/.{1,2}/g)?.map((byte) => parseInt(byte, 16)) || []
+      hexstring.match(/.{1,2}/g)!.map((byte) => parseInt(byte, 16))
     );
-    return toBase64(bytes);
+    console.log(bytes);
+    const b64 = toBase64(bytes);
+    console.log(b64);
+    return b64;
   }
 
   function base64ToHex(b64: string): string {
@@ -82,161 +71,98 @@ export const useCryptoService = () => {
       .join("");
   }
 
-  async function sha256(
-    ...args: (string | bigint | Uint8Array)[]
-  ): Promise<Uint8Array> {
-    const encoder = new TextEncoder();
-    let combined = new Uint8Array(0);
-
-    for (const arg of args) {
-      let buffer: Uint8Array;
-      if (typeof arg === "string") buffer = encoder.encode(arg);
-      else if (typeof arg === "bigint") buffer = bigIntToBuf(arg);
-      else buffer = arg;
-
-      const temp = new Uint8Array(combined.length + buffer.length);
-      temp.set(combined);
-      temp.set(buffer, combined.length);
-      combined = temp;
-    }
-
-    return new Uint8Array(
-      await crypto.subtle.digest("SHA-256", combined as unknown as BufferSource)
-    );
+  // Helper to get Buffer from Base64 (for fast-srp-hap)
+  function base64ToBuffer(base64: string): Buffer {
+    return Buffer.from(base64, "base64");
   }
 
-  async function H(...args: (string | bigint | Uint8Array)[]): Promise<bigint> {
-    const digest = await sha256(...args);
-    const hex = Array.from(digest)
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("");
-    return BigInt("0x" + hex);
-  }
+  // --- 1. SRP Logic (via fast-srp-hap) ---
 
-  function modPow(base: bigint, exp: bigint, mod: bigint): bigint {
-    let result = 1n;
-    base = base % mod;
-    while (exp > 0n) {
-      if (exp % 2n === 1n) result = (result * base) % mod;
-      exp = exp / 2n;
-      base = (base * base) % mod;
-    }
-    return result;
-  }
+  const generateUserSalt = (): string => {
+    return generateSalt(); // Returns a hex string
+  };
 
-  // --- 1. SRP Primitives ---
-
-  const generateSalt = (): string => toBase64(randomBytes(16));
-
-  async function deriveSRPPrivateKey(
-    saltB64: string,
+  async function generatePrivateKey(
+    salt: string,
     email: string,
-    pass: string
-  ): Promise<bigint> {
-    const saltBytes = fromBase64(saltB64);
-    const innerHash = await sha256(email + ":" + pass);
-    const outerHash = await sha256(saltBytes, innerHash);
-    const hex = Array.from(outerHash)
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("");
-    return BigInt("0x" + hex);
+    password: string
+  ): Promise<string> {
+    return derivePrivateKey(salt, email, password); // Returns Hex
+  }
+  async function srpGetVerifier(privateKey: string): Promise<string> {
+    return deriveVerifier(privateKey); // Returns Hex
   }
 
-  const computeVerifier = (x: bigint): string => {
-    const v = modPow(g, x, N);
-    return toBase64(bigIntToBuf(v));
-  };
+  /**
+   * STEP 1: Initialize Client
+   * Generates ephemeral 'a', computes 'A'.
+   * Returns the Client Session object (to hold state) and 'A' (Base64).
+   */
+  async function srpClientStep1(): Promise<Ephemeral> {
+    // // Generate ephemeral secret 'a'
+    const clientEphemeral = generateEphemeral();
+    return clientEphemeral;
+  }
 
-  const generateEphemeralSecret = (): string => {
-    const aBytes = randomBytes(32);
-    const hex = Array.from(aBytes)
-      .map((b) => b.toString(16).padStart(2, "0"))
-      .join("");
-    return hex;
-  };
-
-  // Returns Hex (internal use)
-  const computeClientPublic = (ephemeralPrivateHex: string): string => {
-    const a = hexToBigInt(ephemeralPrivateHex);
-    const A = modPow(g, a, N);
-    return bigIntToHex(A);
-  };
-
-  const computeSessionSecret = async (
-    saltHex: string,
-    serverPublicHex: string,
-    clientEphemeralHex: string,
-    privateKeyHex: string
-  ): Promise<string> => {
-    const B = hexToBigInt(serverPublicHex);
-    const a = hexToBigInt(clientEphemeralHex);
-    const x = hexToBigInt(privateKeyHex);
-    const A = modPow(g, a, N);
-
-    // u = H(A, B)
-    const u = await H(bigIntToBuf(A), bigIntToBuf(B));
-
-    const v = modPow(g, x, N);
-    let term1 = (B - ((k * v) % N)) % N;
-    if (term1 < 0n) term1 += N;
-
-    const exp = a + u * x;
-    const S = modPow(term1, exp, N);
-    return bigIntToHex(S);
-  };
-
-  const computeSessionKey = async (
-    sessionSecretHex: string
-  ): Promise<string> => {
-    const S = hexToBigInt(sessionSecretHex);
-    const K = await H(bigIntToBuf(S));
-    return bigIntToHex(K);
-  };
-
-  const computeClientProof = async (
+  /**
+   * STEP 2: Process Challenge
+   * Takes 'B' from server, computes Session Key 'K' and Proof 'M1'.
+   */
+  async function srpClientStep2(
+    session: Ephemeral,
+    serverPublicB64: string, // 'B' from server
+    saltB64: string, // 's' from server (or init)
     email: string,
-    saltHex: string,
-    clientPublicHex: string,
-    serverPublicHex: string,
-    sessionKeyHex: string
-  ): Promise<string> => {
-    const A = hexToBigInt(clientPublicHex);
-    const B = hexToBigInt(serverPublicHex);
-    const K = hexToBigInt(sessionKeyHex);
+    password: string
+  ) {
+    // 1. Convert Base64 inputs -> Hex for the library
+    const serverPublicHex = base64ToHex(serverPublicB64);
+    const saltHex = base64ToHex(saltB64);
 
-    const H_N = await H(bigIntToBuf(N));
-    const H_g = await H(bigIntToBuf(g));
-    const xor = H_N ^ H_g;
-    const H_I = await H(email);
-    const s = hexToBigInt(saltHex);
+    // 2. Re-derive Private Key (x)
+    const privateKeyHex = derivePrivateKey(saltHex, email, password);
 
-    const M1 = await H(
-      bigIntToBuf(xor),
-      bigIntToBuf(H_I),
-      bigIntToBuf(s),
-      bigIntToBuf(A),
-      bigIntToBuf(B),
-      bigIntToBuf(K)
+    // 3. Derive Session (S and M1)
+    // deriveSession(ephemeralSecret, serverEphemeralPublic, salt, username, privateKey)
+    const clientSession = deriveSession(
+      session.secret,
+      serverPublicHex,
+      saltHex,
+      email,
+      privateKeyHex
     );
-    return bigIntToHex(M1);
-  };
 
-  const verifyServerProof = async (
-    clientPublicHex: string,
-    clientProofHex: string,
-    sessionKeyHex: string,
-    serverProofHex: string
-  ): Promise<boolean> => {
-    const A = hexToBigInt(clientPublicHex);
-    const M1 = hexToBigInt(clientProofHex);
-    const K = hexToBigInt(sessionKeyHex);
-    const M2_received = hexToBigInt(serverProofHex);
+    return {
+      keyHex: clientSession.key, // K
+      proofHex: clientSession.proof, // M1
+      proofB64: hexToBase64(clientSession.proof), // M1 for wire
+    };
+  }
 
-    const M2_calc = await H(bigIntToBuf(A), bigIntToBuf(M1), bigIntToBuf(K));
-    return M2_calc === M2_received;
-  };
+  /**
+   * STEP 3: Verify Server
+   * Checks 'M2' from server.
+   */
+  async function srpClientStep3(
+    session: Ephemeral,
+    clientSessionProofHex: string, // M1 (Hex)
+    serverProofB64: string, // M2 (Base64)
+    serverSessionKeyHex: string // K (Hex) - verifySession needs the session object
+  ): Promise<void> {
+    const serverProofHex = base64ToHex(serverProofB64);
+
+    // Reconstruct the object expected by verifySession
+    const clientSessionObj = {
+      key: serverSessionKeyHex,
+      proof: clientSessionProofHex,
+    };
+
+    // verifySession(clientEphemeralPublic, clientSession, serverSessionProof)
+    verifySession(session.public, clientSessionObj, serverProofHex);
+  }
 
   // --- 2. Symmetric Encryption (AES-GCM) & KDF (Argon2id) ---
+  // (Unchanged from previous version, kept for completeness)
 
   async function deriveKeyArgon2id(
     password: string,
@@ -275,12 +201,12 @@ export const useCryptoService = () => {
       data
     );
     const ciphertextWithTag = new Uint8Array(ciphertextWithTagBuf);
-
+    // Combine IV + Ciphertext + Tag (Standard WebCrypto is Ciphertext+Tag)
+    // Python backend expects: IV (12) + Tag (16) + Ciphertext
     const tagLength = 16;
     const ciphertextLen = ciphertextWithTag.length - tagLength;
     const ciphertext = ciphertextWithTag.slice(0, ciphertextLen);
     const tag = ciphertextWithTag.slice(ciphertextLen);
-
     const result = new Uint8Array(iv.length + tag.length + ciphertext.length);
     result.set(iv, 0);
     result.set(tag, iv.length);
@@ -339,25 +265,27 @@ export const useCryptoService = () => {
   }
 
   return {
-    generateSalt,
+    // Utils
     randomBytes,
+    hexToBase64,
     toBase64,
     fromBase64,
-    hexToBase64,
-    base64ToHex,
-    bigIntToHex,
-    deriveSRPPrivateKey,
-    computeVerifier,
-    generateEphemeralSecret,
-    computeClientPublic,
-    computeSessionSecret,
-    computeSessionKey,
-    computeClientProof,
-    verifyServerProof,
+
+    // SRP (New Interface)
+    generateUserSalt,
+    generatePrivateKey,
+    srpGetVerifier,
+    srpClientStep1,
+    srpClientStep2,
+    srpClientStep3,
+
+    // Symmetric / KDF
     deriveKeyArgon2id,
     importAESKey,
     encryptAES,
     decryptAES,
+
+    // Asymmetric
     generateKeyPair,
     exportPublicKey,
     exportPrivateKey,

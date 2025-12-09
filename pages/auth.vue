@@ -39,6 +39,7 @@ function handleRegistrationSuccess() {
               <RegisterForm @registration-success="handleRegistrationSuccess" />
             </TabsContent>
           </Tabs>
+          <Button @click="handleTestClick">Test SRP Flow</Button>
         </div>
       </div>
     </div>
