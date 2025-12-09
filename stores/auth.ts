@@ -68,7 +68,6 @@ export const useAuthStore = defineStore("auth", () => {
       encrypted_private_key_recovery: encryptedPrivateKeyRecovery,
       encrypted_vault_key: encryptedVaultKey,
     };
-    console.log(payload);
 
     const { error } = await useApi<UserCreateResponse>("/auth/register", {
       method: "POST",
@@ -94,8 +93,6 @@ export const useAuthStore = defineStore("auth", () => {
           skipAuthError: true,
         });
 
-      console.log(initData.value);
-
       if (initError.value || !initData.value) {
         throw new Error(
           initError.value?.data?.detail || "User not found or connection failed"
@@ -111,9 +108,6 @@ export const useAuthStore = defineStore("auth", () => {
       // We get a session object that holds the library state
       const clientEphemeral = await cs.srpClientStep1();
       const clientEphemeralB64 = cs.hexToBase64(clientEphemeral.public);
-
-      console.log("AAAAA");
-      console.log(clientEphemeralB64);
 
       const { data: challengeData, error: challengeError } =
         await useApi<SRPChallengeResponse>("/auth/srp/challenge", {
@@ -133,9 +127,6 @@ export const useAuthStore = defineStore("auth", () => {
 
       const { server_ephemeral_public: serverPublicB64, srp_session_id } =
         challengeData.value;
-
-      console.log("BBBBBB");
-      console.log(serverPublicB64);
 
       // Step 2 (Local): Compute Session Key 'K' & Proof 'M1'
       // We pass in Base64 values; the service converts them to Hex for calculation
@@ -179,7 +170,6 @@ export const useAuthStore = defineStore("auth", () => {
       }
 
       // Success!
-      console.log(access_token);
       token.value = access_token;
       //   await fetchUser();
 
@@ -189,18 +179,6 @@ export const useAuthStore = defineStore("auth", () => {
       throw err;
     }
   }
-
-  // --- Helper Actions ---
-
-  //   async function fetchUser() {
-  //     if (!token.value) return;
-  //     const { data, error } = await useApi<User>("/auth/me");
-  //     if (error.value) {
-  //       logout();
-  //       return;
-  //     }
-  //     user.value = data.value;
-  //   }
 
   function logout() {
     token.value = null;

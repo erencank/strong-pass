@@ -58,9 +58,7 @@ export const useCryptoService = () => {
     const bytes = new Uint8Array(
       hexstring.match(/.{1,2}/g)!.map((byte) => parseInt(byte, 16))
     );
-    console.log(bytes);
     const b64 = toBase64(bytes);
-    console.log(b64);
     return b64;
   }
 
