@@ -29,7 +29,15 @@ export default defineNuxtConfig({
   css: ["~/assets/css/tailwind.css"],
 
   ignore: ["**/src-tauri/**"],
-  modules: ["@nuxtjs/tailwindcss", "@pinia/nuxt", "shadcn-nuxt"],
+  modules: [
+    "@nuxtjs/tailwindcss",
+    "@nuxtjs/color-mode",
+    "@pinia/nuxt",
+    "shadcn-nuxt",
+  ],
+  colorMode: {
+    classSuffix: "",
+  },
 
   shadcn: {
     /**
