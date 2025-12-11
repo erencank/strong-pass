@@ -8,9 +8,11 @@ import LoginForm from "~/components/login-01/components/LoginForm.vue";
 
 <template>
   <div
-    class="flex min-h-svh w-full items-center justify-center p-6 md:p-10 bg-linear-to-r from-purple-400 to-yellow-500"
+    class="relative flex min-h-svh w-full items-center justify-center overflow-hidden p-6 md:p-10"
   >
-    <div class="w-full max-w-sm">
+    <BackgroundGrid />
+
+    <div class="relative z-10 w-full max-w-sm">
       <LoginForm />
     </div>
   </div>
