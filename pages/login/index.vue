@@ -10,7 +10,7 @@ import LoginForm from "~/components/login-01/components/LoginForm.vue";
   <div
     class="relative flex min-h-svh w-full items-center justify-center overflow-hidden p-6 md:p-10"
   >
-    <BackgroundGrid />
+    <WaveBackgroundGrid />
 
     <div class="relative z-10 w-full max-w-sm">
       <LoginForm />
