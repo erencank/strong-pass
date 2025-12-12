@@ -9,8 +9,8 @@ let particles: Particle[] = [];
 const SPACING = 20; // Distance between dots
 const RADIUS = 1; // Base radius of dots
 const WAVE_SPEED = 0.0003; // How fast the wave moves
-const WAVE_AMP = 2; // How far the dots move (pixels)
-const WAVE_FREQ = 0.005; // Tightness of the wave (lower = wider waves)
+const WAVE_AMP = 4; // How far the dots move (pixels)
+const WAVE_FREQ = 0.002; // Tightness of the wave (lower = wider waves)
 const DOT_COLOR = "#333333";
 
 // Global time tracker for the animation

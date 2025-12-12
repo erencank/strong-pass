@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from "vue";
+import { cn } from "@/lib/utils";
+import { ref, onMounted, onBeforeUnmount, type HTMLAttributes } from "vue";
 
 const canvasRef = ref<HTMLCanvasElement | null>(null);
 let animationFrameId: number;
@@ -112,11 +113,16 @@ onBeforeUnmount(() => {
   window.removeEventListener("resize", handleResize);
   window.removeEventListener("mousemove", handleMouseMove);
 });
+const props = defineProps<{
+  class?: HTMLAttributes["class"];
+}>();
 </script>
 
 <template>
   <canvas
     ref="canvasRef"
-    class="absolute inset-0 -z-10 h-full w-full bg-black block"
+    :class="
+      cn('absolute inset-0 -z-10 h-full w-full bg-black block', props.class)
+    "
   />
 </template>

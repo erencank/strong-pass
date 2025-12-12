@@ -50,4 +50,6 @@ export default defineNuxtConfig({
      */
     componentDir: "./components/ui",
   },
+
+  components: [{ path: "~/components/own" }, "~/components"],
 });

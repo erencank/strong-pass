@@ -24,7 +24,7 @@ const props = defineProps<{
 
 <template>
   <div :class="cn('flex flex-col gap-6', props.class)">
-    <Card class="card-foreground 85%">
+    <Card>
       <CardHeader>
         <CardTitle>Login to your account</CardTitle>
         <CardDescription>
