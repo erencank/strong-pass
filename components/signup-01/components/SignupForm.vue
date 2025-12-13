@@ -20,11 +20,12 @@ import { useForm, Field as VeeField } from "vee-validate";
 import { toast } from "vue-sonner";
 import { Spinner } from "@/components/ui/spinner";
 import { ButtonGroup } from "@/components/ui/button-group";
-import { DownloadIcon } from "lucide-vue-next";
+import { DownloadIcon, EyeIcon, EyeOffIcon } from "lucide-vue-next";
 import { useRouter } from "vue-router";
 
 const auth = useAuthStore();
 const recoveryCode = ref<string | null>(null);
+const showRecoveryCode = ref(false); // State for visibility toggle
 const isSubmitting = ref(false);
 const router = useRouter();
 
@@ -101,6 +102,13 @@ const downloadRecoveryCode = () => {
   toast.success("Recovery code downloaded");
 };
 
+const displayCode = computed(() => {
+  if (!recoveryCode.value) return "";
+  if (showRecoveryCode.value) return recoveryCode.value;
+  // Mask with dots, matching length or fixed length
+  return "•".repeat(recoveryCode.value.length);
+});
+
 const finishRegistration = () => {
   // Reload/Navigate to force fresh state for login
   router.replace("/login");
@@ -152,10 +160,25 @@ const finishRegistration = () => {
 
       <!-- Code Display -->
       <div class="relative group">
-        <div
-          class="p-4 bg-muted/50 rounded-md border font-mono text-center text-lg tracking-wider break-all selection:bg-primary selection:text-primary-foreground"
-        >
-          {{ recoveryCode }}
+        <div class="flex w-full items-stretch rounded-md border bg-muted/50">
+          <div
+            class="flex items-center flex-1 p-4 font-mono text-center text-lg tracking-wider break-all selection:bg-primary selection:text-primary-foreground min-h-14 justify-center"
+          >
+            {{ displayCode }}
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            class="h-auto rounded-l-none border-l hover:bg-muted px-5"
+            @click="showRecoveryCode = !showRecoveryCode"
+            :title="showRecoveryCode ? 'Hide Code' : 'Show Code'"
+          >
+            <EyeOffIcon
+              v-if="showRecoveryCode"
+              class="h-4 w-4 text-muted-foreground"
+            />
+            <EyeIcon v-else class="h-4 w-4 text-muted-foreground" />
+          </Button>
         </div>
       </div>
     </CardContent>
